@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #007AFF;
+  --ai-bg: #F5F7FF;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background-color: #F8F9FA;
+  color: #1D1D1F;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  
+  .ai-gradient-bg {
+    background: linear-gradient(135deg, #F5F7FF 0%, #E8F0FF 100%);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 text-white font-medium rounded-xl px-5 py-3 
+           active:bg-primary-600 transition-all duration-200 ease-ios
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-primary-500 font-medium rounded-xl px-5 py-3
+           border border-primary-100 active:bg-primary-50 
+           transition-all duration-200 ease-ios
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent text-text-primary font-medium rounded-xl px-5 py-3
+           active:bg-surface-tertiary transition-all duration-200 ease-ios;
+  }
+  
+  .card {
+    @apply bg-white rounded-2xl shadow-sm;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 bg-surface-secondary rounded-xl
+           border-0 outline-none text-text-primary
+           placeholder:text-text-tertiary
+           focus:ring-2 focus:ring-primary-500/20 focus:bg-white
+           transition-all duration-200 ease-ios;
+  }
+}
