@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 120
 
 const VOLC_API_KEY = process.env.VOLC_API_KEY || ''
-const VOLC_MODEL = process.env.VOLC_MODEL || 'deepseek-v3-250324'
+const VOLC_MODEL = process.env.VOLC_MODEL || 'Doubao-1.5-pro-32k'
 const VOLC_ENDPOINT = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
 
 const TIMEOUT_MS = 120000
