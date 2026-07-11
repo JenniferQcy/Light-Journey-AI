@@ -65,6 +65,7 @@ export default function HomePage() {
         items: result.items,
       }
       savePlanToLocal(plan)
+      setLoading(false)
 
       showToast(`行程生成成功！剩余 ${result.remaining} 次`, 'success')
     } catch (error: any) {

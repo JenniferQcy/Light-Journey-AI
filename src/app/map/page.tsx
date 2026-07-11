@@ -41,13 +41,22 @@ const cityCenters: Record<string, { lat: number; lng: number }> = {
   '丽江': { lat: 26.8552, lng: 100.2270 },
 }
 
+const normalizeCity = (city?: string): string | undefined => {
+  if (!city) return undefined
+  const cleaned = city.replace(/[省市]$/, '')
+  if (cityCenters[cleaned]) return cleaned
+  if (cityCenters[city]) return city
+  return undefined
+}
+
 const generateMockCoords = (address: string, city?: string) => {
   let baseLat = 39.9042
   let baseLng = 116.4074
 
-  if (city && cityCenters[city]) {
-    baseLat = cityCenters[city].lat
-    baseLng = cityCenters[city].lng
+  const matchedCity = normalizeCity(city)
+  if (matchedCity) {
+    baseLat = cityCenters[matchedCity].lat
+    baseLng = cityCenters[matchedCity].lng
   }
 
   let hash = 0
@@ -56,8 +65,8 @@ const generateMockCoords = (address: string, city?: string) => {
     hash = hash & hash
   }
 
-  const latOffset = ((hash % 1000) / 1000 - 0.5) * 0.1
-  const lngOffset = (((hash >> 10) % 1000) / 1000 - 0.5) * 0.1
+  const latOffset = ((hash % 1000) / 1000 - 0.5) * 0.02
+  const lngOffset = (((hash >> 10) % 1000) / 1000 - 0.5) * 0.02
 
   return {
     latitude: Number((baseLat + latOffset).toFixed(6)),
@@ -80,7 +89,6 @@ function MapContent() {
   const [geocodingItem, setGeocodingItem] = useState<string | null>(null)
   const isGeocodingRef = useRef(false)
   const currentPlanRef = useRef<TravelPlan | null>(null)
-  const hasInitGeocodeRef = useRef(false)
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -105,6 +113,18 @@ function MapContent() {
       return
     }
 
+    // 防止 StrictMode 重复加载：检查是否已有同名脚本
+    const existingScript = document.querySelector(
+      'script[src*="webapi.amap.com/maps"]'
+    )
+    if (existingScript) {
+      // 脚本已在加载中，只设置 callback
+      window._amapInit = () => {
+        initMap()
+      }
+      return
+    }
+
     window._amapInit = () => {
       initMap()
     }
@@ -117,7 +137,15 @@ function MapContent() {
     }
     document.head.appendChild(script)
 
+    // 兜底：8秒后如果还没加载成功，显示错误
+    const timeout = setTimeout(() => {
+      if (!mapInstance.current) {
+        setMapError(true)
+      }
+    }, 8000)
+
     return () => {
+      clearTimeout(timeout)
       if (document.head.contains(script)) {
         document.head.removeChild(script)
       }
@@ -149,7 +177,6 @@ function MapContent() {
       zoom: 12,
       center: [116.4, 39.9],
       viewMode: '2D',
-      mapStyle: 'amap://styles/light',
     })
 
     setMapLoaded(true)
@@ -221,18 +248,7 @@ function MapContent() {
   }, [mapLoaded, currentPlan, addMarkers])
 
   useEffect(() => {
-    if (!currentPlan) return
-    if (hasInitGeocodeRef.current) return
-
-    const itemsWithoutCoords = currentPlan.items.filter(
-      (item) => !item.latitude || !item.longitude
-    )
-
-    if (itemsWithoutCoords.length === 0) {
-      hasInitGeocodeRef.current = true
-      return
-    }
-
+    if (!currentPlan || !mapLoaded) return
     if (isGeocodingRef.current) return
 
     isGeocodingRef.current = true
@@ -241,31 +257,31 @@ function MapContent() {
       const plan = currentPlanRef.current
       if (!plan) {
         isGeocodingRef.current = false
-        hasInitGeocodeRef.current = true
         return
       }
-
-      const itemsToGeocode = plan.items.filter(
-        (item) => !item.latitude || !item.longitude
-      )
 
       const updatedItems = [...plan.items]
       let hasUpdates = false
 
-      for (let i = 0; i < itemsToGeocode.length; i++) {
-        const item = itemsToGeocode[i]
+      for (let i = 0; i < plan.items.length; i++) {
+        const item = plan.items[i]
         try {
           setGeocodingItem(item.name)
           const result = await geocodeAddress(item.name, plan.destination)
-          
+
           const itemIndex = updatedItems.findIndex((it) => it.id === item.id)
           if (itemIndex >= 0) {
-            updatedItems[itemIndex] = {
-              ...updatedItems[itemIndex],
-              latitude: result.latitude,
-              longitude: result.longitude,
+            if (
+              updatedItems[itemIndex].latitude !== result.latitude ||
+              updatedItems[itemIndex].longitude !== result.longitude
+            ) {
+              updatedItems[itemIndex] = {
+                ...updatedItems[itemIndex],
+                latitude: result.latitude,
+                longitude: result.longitude,
+              }
+              hasUpdates = true
             }
-            hasUpdates = true
           }
         } catch (e: any) {
           console.error(`获取坐标失败: ${item.name}`, e)
@@ -283,12 +299,11 @@ function MapContent() {
         savePlanToLocal(updatedPlan)
       }
 
-      hasInitGeocodeRef.current = true
       isGeocodingRef.current = false
     }
 
     geocodeAll()
-  }, [currentPlan, geocodeAddress, showToast])
+  }, [currentPlan, mapLoaded, geocodeAddress, showToast])
 
   useEffect(() => {
     if (!mapLoaded || !mapInstance.current) return
@@ -384,7 +399,7 @@ function MapContent() {
     <AppLayout>
       <div className="h-screen flex flex-col">
         <div className="flex-1 relative min-h-[300px] bg-surface-tertiary">
-          <div ref={mapRef} className="w-full h-full" />
+          <div ref={mapRef} className="absolute inset-0" />
 
           {mapError && currentPlan && (
             <div className="absolute inset-0 bg-surface-secondary">
